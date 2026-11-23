@@ -1561,3 +1561,6 @@
 @media (max-width: 860px) {
   :global(html[data-admin-theme="light"]) .root .topbar { background: rgba(255, 255, 255, 0.94); }
 }
+
+/* Published, but the publish date is still in the future (hidden on the website) */
+.badgeScheduled { background: rgba(251, 191, 36, 0.14); color: var(--ok); }

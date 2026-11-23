@@ -21,7 +21,8 @@ if (!PDF) {
   process.exit(1);
 }
 const SITE = "https://www.thelotusroots.co.uk";
-const PUBLISHED_AT = "2026-11-15 09:00:00"; // 15 November 2026 (UTC)
+// Never later than now: a post dated in the future is treated as scheduled and hidden from the website.
+const PUBLISHED_AT = new Date(Math.min(Date.parse("2026-11-15T09:00:00Z"), Date.now() - 60_000)).toISOString().replace("T", " ").slice(0, 19); // 15 November 2026 (UTC)
 const AUTHOR = "Lotus Roots Technologies";
 
 // ---------- headings (the PDF has no style info, so the section titles are listed) ----------

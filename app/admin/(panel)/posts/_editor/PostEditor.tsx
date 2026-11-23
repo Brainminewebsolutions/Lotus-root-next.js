@@ -192,6 +192,9 @@ export default function PostEditor({ initial, savedStatus, savedSlug }: Props) {
                 value={toLocalInput(post.published_at)}
                 onChange={(e) => set("published_at", e.target.value ? new Date(e.target.value).toISOString() : "")}
               />
+              <span className={styles.hint} style={{ marginTop: 4 }}>
+                A date in the future schedules the post: it stays hidden on the website until then.
+              </span>
             </div>
             <div className={styles.saveBar}>
               {isPublished ? (

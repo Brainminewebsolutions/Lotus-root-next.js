@@ -147,5 +147,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  return [...mainPages, ...digitalEngineeringPages, ...standalonePages, ...seoServicePages];
+  // BIM landing pages
+  const bimPages: MetadataRoute.Sitemap = [
+    "bim-services-uk",
+    "scan-to-bim-uk",
+    "bim-coordination-clash-detection",
+    "bim-services-london",
+  ].map((slug) => ({
+    url: `${BASE_URL}/${slug}`,
+    lastModified: currentDate,
+    changeFrequency: "monthly" as const,
+    priority: 0.9,
+  }));
+
+  return [...mainPages, ...digitalEngineeringPages, ...standalonePages, ...seoServicePages, ...bimPages];
 }

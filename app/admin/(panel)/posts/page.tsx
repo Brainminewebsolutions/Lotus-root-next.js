@@ -13,6 +13,10 @@ type PostListRow = {
 
 type Search = { type?: string; status?: string; q?: string; page?: string };
 
+// Published but dated in the future = scheduled (hidden on the website until then).
+const isScheduled = (status: string, publishedAt: string | null) =>
+  status === "published" && !!publishedAt && new Date(toIso(publishedAt) ?? "").getTime() > Date.now();
+
 export default async function AdminPostsPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireStaff();
   const params = await searchParams;
@@ -139,9 +143,18 @@ export default async function AdminPostsPage({ searchParams }: { searchParams: P
                   </div>
                 </td>
                 <td data-label="Status">
-                  <span className={`${styles.badge} ${post.status === "published" ? styles.badgePublished : styles.badgeDraft}`}>
-                    {post.status}
-                  </span>
+                  {isScheduled(post.status, post.published_at) ? (
+                    <span
+                      className={`${styles.badge} ${styles.badgeScheduled}`}
+                      title="Publish date is in the future: this post stays hidden on the website until then."
+                    >
+                      scheduled
+                    </span>
+                  ) : (
+                    <span className={`${styles.badge} ${post.status === "published" ? styles.badgePublished : styles.badgeDraft}`}>
+                      {post.status}
+                    </span>
+                  )}
                 </td>
                 <td data-label="SEO">
                   <span
