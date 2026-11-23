@@ -294,7 +294,16 @@ function sniffImage(bytes: Uint8Array): { mime: string } | null {
 export async function uploadImage(
   formData: FormData,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  const staff = await requireStaff();
+  let staff: Awaited<ReturnType<typeof requireStaff>>;
+  try {
+    staff = await requireStaff();
+  } catch (err) {
+    // redirect() (not signed in) must still propagate; anything else is a real failure to report.
+    if ((err as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw err;
+    console.error("[admin uploadImage] auth", err);
+    const e = err as { code?: string; message?: string };
+    return { ok: false, error: `Could not verify your session (${e.code || e.message || "unknown error"}).` };
+  }
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "No file received." };
   if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image is larger than 4 MB. Compress it (e.g. squoosh.app) and try again." };
@@ -314,6 +323,7 @@ export async function uploadImage(
     return { ok: true, url: `/media/${res.insertId}` };
   } catch (err) {
     console.error("[admin uploadImage]", err);
-    return { ok: false, error: "Upload failed (database error). Check that the media table exists." };
+    const e = err as { code?: string; message?: string };
+    return { ok: false, error: `Upload failed (database error: ${e.code || e.message || "unknown"}). Check that the media table exists.` };
   }
 }
