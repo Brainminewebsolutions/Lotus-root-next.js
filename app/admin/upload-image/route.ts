@@ -2,8 +2,6 @@ import { getCurrentStaff } from "@/lib/auth";
 import { exec } from "@/lib/db";
 import { MAX_IMAGE_BYTES, sniffImage } from "@/lib/image-upload";
 
-export const runtime = "nodejs";
-
 // Admin image upload as a plain route handler. Always answers with JSON
 // ({ ok, url } or { ok: false, error }) so failures show their real reason
 // instead of a generic server-action 500. The session cookie is scoped to
