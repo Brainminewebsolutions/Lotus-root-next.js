@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadImage } from "../../../_actions/posts";
+import { uploadImageFile } from "./uploadImageFile";
 import styles from "../../../admin.module.css";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 };
 
 // Click-or-drop image uploader. Uploads to the database (media table) via the
-// uploadImage server action and hands back the /media/<id> URL.
+// /admin/upload-image route and hands back the /media/<id> URL.
 export default function ImageField({ url, onChange, emptyText = "Click or drop an image here (max 4 MB)" }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -25,15 +25,9 @@ export default function ImageField({ url, onChange, emptyText = "Click or drop a
     }
     setBusy(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const result = await uploadImage(fd);
+      const result = await uploadImageFile(file);
       if (result.ok) onChange(result.url);
       else setError(result.error);
-    } catch (err) {
-      // A thrown action (network drop, request too large, expired session) must not leave the field stuck on "Uploading...".
-      console.error("[ImageField upload]", err);
-      setError("Upload failed. Check your connection and that you are still signed in, then try again.");
     } finally {
       setBusy(false);
     }

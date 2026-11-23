@@ -5,7 +5,7 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
-import { uploadImage } from "../../../_actions/posts";
+import { uploadImageFile } from "./uploadImageFile";
 import styles from "../../../admin.module.css";
 import ColorPicker from "./ColorPicker";
 
@@ -56,17 +56,8 @@ export default function RichTextEditor({ value, onChange }: Props) {
   const onPickImage = async (file: File) => {
     if (!editor) return;
     setUploading(true);
-    let result: Awaited<ReturnType<typeof uploadImage>>;
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      result = await uploadImage(fd);
-    } catch (err) {
-      console.error("[RichTextEditor upload]", err);
-      result = { ok: false, error: "Upload failed. Check your connection and that you are still signed in, then try again." };
-    } finally {
-      setUploading(false);
-    }
+    const result = await uploadImageFile(file);
+    setUploading(false);
     if (!result.ok) {
       window.alert(result.error);
       return;
