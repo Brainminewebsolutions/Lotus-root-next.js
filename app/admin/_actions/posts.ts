@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireStaff } from "@/lib/auth";
 import { exec, queryOne, isDuplicateError, isMissingTableError } from "@/lib/db";
 import { sanitizePostHtml } from "@/lib/sanitize";
@@ -156,8 +156,9 @@ function validate(raw: PostInput): { data: PostInput } | { error: string } {
 // Returns a warning (instead of throwing) if invalidation fails: the post is already saved by then.
 function refreshPublicSite(...slugs: string[]): string | undefined {
   try {
-    updateTag("posts");
-    for (const slug of slugs) updateTag(`post:${slug}`);
+    // { expire: 0 } expires immediately (like updateTag) but also works in route handlers.
+    revalidateTag("posts", { expire: 0 });
+    for (const slug of slugs) revalidateTag(`post:${slug}`, { expire: 0 });
     revalidatePath("/blog");
     revalidatePath("/");
   } catch (err) {

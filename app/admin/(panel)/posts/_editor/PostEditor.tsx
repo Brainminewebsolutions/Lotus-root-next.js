@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { savePost, type PostInput } from "../../../_actions/posts";
+import type { PostInput, SaveResult } from "../../../_actions/posts";
 import { slugify } from "@/lib/slug";
 import RichTextEditor from "./RichTextEditor";
 import SeoPanel from "./SeoPanel";
@@ -52,14 +52,21 @@ export default function PostEditor({ initial, savedStatus, savedSlug }: Props) {
     (status: "draft" | "published") => {
       setMessage(null);
       startTransition(async () => {
-        let result: Awaited<ReturnType<typeof savePost>>;
+        let result: SaveResult;
         try {
-          result = await savePost({ ...post, status });
+          const res = await fetch("/admin/save-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...post, status }),
+            credentials: "same-origin",
+          });
+          const data = (await res.json().catch(() => null)) as SaveResult | null;
+          if (data && typeof data.ok === "boolean") result = data;
+          else if (res.redirected || res.status === 401) result = { ok: false, error: "You are signed out. Reload the page and log in again." };
+          else result = { ok: false, error: `Save failed (server returned ${res.status}).` };
         } catch (err) {
-          // A thrown action must show a message here, not unmount the whole page into the global error screen.
           console.error("[PostEditor save]", err);
-          setMessage({ type: "error", text: "Save failed on the server. Your changes are still here; copy the post text, reload and try again." });
-          return;
+          result = { ok: false, error: "Save failed. Check your connection and try again; your changes are still here." };
         }
         if (!result.ok) {
           setMessage({ type: "error", text: result.error });
