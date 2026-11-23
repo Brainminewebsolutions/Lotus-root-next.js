@@ -42,7 +42,10 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "5mb" },
   },
   cacheComponents: true, // required by lib/posts.ts ("use cache", cacheTag, cacheLife)
-  serverExternalPackages: ["mysql2", "pg", "sanitize-html"],
+  // sanitize-html is deliberately NOT external: it is CommonJS and require()s the ESM-only
+  // htmlparser2, which Vercel's Node runtime rejects (ERR_REQUIRE_ESM). Bundling it lets
+  // Turbopack handle the ESM interop.
+  serverExternalPackages: ["mysql2", "pg"],
   async headers() {
     return [
       {
