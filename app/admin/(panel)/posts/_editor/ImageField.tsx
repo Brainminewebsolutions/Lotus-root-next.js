@@ -18,14 +18,25 @@ export default function ImageField({ url, onChange, emptyText = "Click or drop a
   const [error, setError] = useState("");
 
   const upload = async (file: File) => {
-    setBusy(true);
     setError("");
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadImage(fd);
-    setBusy(false);
-    if (result.ok) onChange(result.url);
-    else setError(result.error);
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Image is larger than 4 MB. Compress it (e.g. squoosh.app) and try again.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await uploadImage(fd);
+      if (result.ok) onChange(result.url);
+      else setError(result.error);
+    } catch (err) {
+      // A thrown action (network drop, request too large, expired session) must not leave the field stuck on "Uploading...".
+      console.error("[ImageField upload]", err);
+      setError("Upload failed. Check your connection and that you are still signed in, then try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
