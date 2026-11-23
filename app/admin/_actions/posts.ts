@@ -153,11 +153,17 @@ function validate(raw: PostInput): { data: PostInput } | { error: string } {
 
 // Public pages read through cached queries tagged "posts" (lib/posts.ts).
 // updateTag expires them immediately, so a saved post shows on the site at once.
-function refreshPublicSite(...slugs: string[]) {
-  updateTag("posts");
-  for (const slug of slugs) updateTag(`post:${slug}`);
-  revalidatePath("/blog");
-  revalidatePath("/");
+// Returns a warning (instead of throwing) if invalidation fails: the post is already saved by then.
+function refreshPublicSite(...slugs: string[]): string | undefined {
+  try {
+    updateTag("posts");
+    for (const slug of slugs) updateTag(`post:${slug}`);
+    revalidatePath("/blog");
+    revalidatePath("/");
+  } catch (err) {
+    console.error("[admin refreshPublicSite]", err);
+    return "Saved, but the public site cache could not be refreshed. Changes may take a few minutes to appear.";
+  }
 }
 
 
@@ -171,7 +177,16 @@ function friendlyDbError(err: unknown) {
 }
 
 export async function savePost(raw: PostInput): Promise<SaveResult> {
-  const staff = await requireStaff();
+  let staff: Awaited<ReturnType<typeof requireStaff>>;
+  try {
+    staff = await requireStaff();
+  } catch (err) {
+    // redirect() (signed out) must propagate; a real failure is reported with its reason.
+    if ((err as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw err;
+    console.error("[admin savePost] auth", err);
+    const e = err as { code?: string; message?: string };
+    return { ok: false, error: `Could not verify your session (${e.code || e.message || "unknown error"}).` };
+  }
   const result = validate(raw);
   if ("error" in result) return { ok: false, error: result.error };
   const { id, ...fields } = result.data;
@@ -224,8 +239,7 @@ export async function savePost(raw: PostInput): Promise<SaveResult> {
     } catch (err) {
       return { ok: false, error: friendlyDbError(err) };
     }
-    refreshPublicSite(fields.slug);
-    return { ok: true, id: newId, slug: fields.slug };
+    return { ok: true, id: newId, slug: fields.slug, warning: refreshPublicSite(fields.slug) };
   }
 
   const existing = await queryOne<{ slug: string; status: PostStatus }>("SELECT slug, status FROM posts WHERE id = ?", [id]);
@@ -253,8 +267,7 @@ export async function savePost(raw: PostInput): Promise<SaveResult> {
   // The new URL must not itself be a redirect.
   await exec("DELETE FROM post_redirects WHERE post_type = 'blog' AND old_slug = ?", [fields.slug]);
 
-  refreshPublicSite(existing.slug, fields.slug);
-  return { ok: true, id, slug: fields.slug };
+  return { ok: true, id, slug: fields.slug, warning: refreshPublicSite(existing.slug, fields.slug) };
 }
 
 export async function deletePost(id: string): Promise<{ ok: boolean; error?: string }> {

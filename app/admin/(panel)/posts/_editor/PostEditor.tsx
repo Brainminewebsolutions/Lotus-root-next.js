@@ -52,7 +52,15 @@ export default function PostEditor({ initial, savedStatus, savedSlug }: Props) {
     (status: "draft" | "published") => {
       setMessage(null);
       startTransition(async () => {
-        const result = await savePost({ ...post, status });
+        let result: Awaited<ReturnType<typeof savePost>>;
+        try {
+          result = await savePost({ ...post, status });
+        } catch (err) {
+          // A thrown action must show a message here, not unmount the whole page into the global error screen.
+          console.error("[PostEditor save]", err);
+          setMessage({ type: "error", text: "Save failed on the server. Your changes are still here; copy the post text, reload and try again." });
+          return;
+        }
         if (!result.ok) {
           setMessage({ type: "error", text: result.error });
           return;
